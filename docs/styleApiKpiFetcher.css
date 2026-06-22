@@ -1,0 +1,325 @@
+/* ============================================================================
+   FFP KPI API Fetcher — styles
+   Everything namespaced under .ffp-kpi-ctrl so nothing leaks into Cognos UI.
+   Visual language matches the existing apiFetcher control (blue/steel panels,
+   Consolas mono, green/amber/red status).
+   ============================================================================ */
+
+.ffp-kpi-ctrl {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 13px;
+  color: #1a1a2e;
+  width: 100%;
+  overflow: auto;
+}
+.ffp-kpi-ctrl .fk-wrapper {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Panels ───────────────────────────────────────────────────────────── */
+.ffp-kpi-ctrl .fk-panel {
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f8f9fb;
+  border: 1px solid #dde1e8;
+}
+.ffp-kpi-ctrl .fk-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #eef1f6;
+  border-bottom: 1px solid #dde1e8;
+}
+.ffp-kpi-ctrl .fk-panel-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d6a9f;
+  flex: 1;
+}
+.ffp-kpi-ctrl .fk-subtitle {
+  font-size: 12px;
+  color: #666;
+}
+.ffp-kpi-ctrl .fk-panel-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Badge ────────────────────────────────────────────────────────────── */
+.ffp-kpi-ctrl .fk-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #e0e0e0;
+  color: #666;
+  white-space: nowrap;
+}
+.ffp-kpi-ctrl .fk-badge-ok {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+.ffp-kpi-ctrl .fk-badge-warn {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+/* ── Toolbar / rows ───────────────────────────────────────────────────── */
+.ffp-kpi-ctrl .fk-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.ffp-kpi-ctrl .fk-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ffp-kpi-ctrl .fk-lbl {
+  font-weight: 600;
+  font-size: 12px;
+  color: #444;
+  white-space: nowrap;
+}
+.ffp-kpi-ctrl .fk-sel {
+  padding: 6px 10px;
+  border: 1px solid #bcc3ce;
+  border-radius: 4px;
+  font-size: 13px;
+  background: #fff;
+  cursor: pointer;
+  min-width: 90px;
+}
+.ffp-kpi-ctrl .fk-sel:focus {
+  outline: none;
+  border-color: #2d6a9f;
+  box-shadow: 0 0 0 2px rgba(45, 106, 159, 0.15);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.ffp-kpi-ctrl .fk-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ffp-kpi-ctrl .fk-btn {
+  padding: 7px 16px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ffp-kpi-ctrl .fk-btn:hover {
+  opacity: 0.92;
+}
+.ffp-kpi-ctrl .fk-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ffp-kpi-ctrl .fk-btn-p {
+  background: #2d6a9f;
+  color: #fff;
+}
+.ffp-kpi-ctrl .fk-btn-p:hover {
+  background: #245a87;
+}
+.ffp-kpi-ctrl .fk-btn-s {
+  background: #fff;
+  color: #2d6a9f;
+  border-color: #2d6a9f;
+}
+.ffp-kpi-ctrl .fk-btn-s:hover {
+  background: #eef4fa;
+}
+.ffp-kpi-ctrl .fk-btn-n {
+  background: #fff;
+  color: #666;
+  border-color: #ccc;
+}
+.ffp-kpi-ctrl .fk-btn-n:hover {
+  background: #f5f5f5;
+}
+
+/* ── Status line ──────────────────────────────────────────────────────── */
+.ffp-kpi-ctrl .fk-status {
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: Consolas, "Courier New", monospace;
+}
+.ffp-kpi-ctrl .fk-hidden {
+  display: none;
+}
+.ffp-kpi-ctrl .fk-status-loading {
+  background: #fff8e1;
+  color: #f57f17;
+  border: 1px solid #ffcc02;
+}
+.ffp-kpi-ctrl .fk-status-success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #66bb6a;
+}
+.ffp-kpi-ctrl .fk-status-error {
+  background: #fce4ec;
+  color: #c62828;
+  border: 1px solid #ef5350;
+}
+
+/* ── Banners ──────────────────────────────────────────────────────────── */
+.ffp-kpi-ctrl .fk-banner {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  background: #f0f6ff;
+  border: 1px solid #b8d4f0;
+  color: #1a4a7a;
+}
+.ffp-kpi-ctrl .fk-banner strong {
+  color: #143a63;
+}
+.ffp-kpi-ctrl .fk-warn {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  background: #fff8e1;
+  border: 1px solid #ffcc02;
+  color: #8a5a00;
+}
+.ffp-kpi-ctrl .fk-warn strong {
+  color: #6a4500;
+}
+.ffp-kpi-ctrl .fk-error-block {
+  padding: 16px 18px;
+  border-radius: 6px;
+  background: #fce4ec;
+  border: 1px solid #ef5350;
+  color: #b71c1c;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.ffp-kpi-ctrl .fk-error-block h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #b71c1c;
+}
+.ffp-kpi-ctrl .fk-error-block code {
+  background: #ffd9e0;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+}
+
+/* ── Pivot table ──────────────────────────────────────────────────────── */
+.ffp-kpi-ctrl .fk-table-wrap {
+  overflow: auto;
+  border: 1px solid #dde1e8;
+  border-radius: 6px;
+}
+.ffp-kpi-ctrl .fk-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+}
+.ffp-kpi-ctrl .fk-table th,
+.ffp-kpi-ctrl .fk-table td {
+  border: 1px solid #e3e7ee;
+  padding: 7px 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+.ffp-kpi-ctrl .fk-table thead th {
+  background: #eef1f6;
+  color: #2d6a9f;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  position: sticky;
+  top: 0;
+}
+.ffp-kpi-ctrl .fk-table .fk-rowhdr {
+  text-align: left;
+  font-weight: 600;
+  color: #1a4a7a;
+  font-family: Consolas, "Courier New", monospace;
+  background: #fafbfc;
+}
+.ffp-kpi-ctrl .fk-val {
+  font-weight: 700;
+  font-family: Consolas, "Courier New", monospace;
+}
+.ffp-kpi-ctrl .fk-delta {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-top: 1px;
+}
+/* delta-ratio colour coding (see listRenderer _colourClass) */
+.ffp-kpi-ctrl .fk-cell-good {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+.ffp-kpi-ctrl .fk-cell-warn {
+  background: #fff8e1;
+  color: #b35900;
+}
+.ffp-kpi-ctrl .fk-cell-crit {
+  background: #fce4ec;
+  color: #b71c1c;
+}
+.ffp-kpi-ctrl .fk-cell-neutral {
+  background: #f5f5f5;
+  color: #777;
+}
+.ffp-kpi-ctrl .fk-cell-empty {
+  background: #fafafa;
+  color: #bbb;
+}
+
+/* ── Raw JSON panel ───────────────────────────────────────────────────── */
+.ffp-kpi-ctrl .fk-raw-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  padding: 6px 2px;
+}
+.ffp-kpi-ctrl .fk-raw-hdr:hover {
+  color: #2d6a9f;
+}
+.ffp-kpi-ctrl .fk-pre {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  padding: 12px;
+  margin: 0;
+  background: #fafbfc;
+  border: 1px solid #e3e7ee;
+  border-radius: 4px;
+  color: #1a1a2e;
+  max-height: 360px;
+  overflow: auto;
+}
