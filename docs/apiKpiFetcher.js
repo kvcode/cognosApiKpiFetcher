@@ -129,6 +129,7 @@ define([], function () {
     this._populateDropdowns();
     this._bindEvents();
     this._restoreToken();
+    this._showScope();
   };
 
   // ═══════════════════════ VALIDATION ═══════════════════════
@@ -364,33 +365,56 @@ define([], function () {
   ApiKpiFetcher.prototype._buildBanner = function (aggregation) {
     var self = this,
       map = this.config.dataMap || [];
+    var dsName = this.config.kpiDataStore || (this.kpiStore && this.kpiStore.name) || "dataset";
+    var hdr = (
+      this._lbl(this.config.scopeBannerHeader) || 'Distinct values from dataset "{dataStore}" detected as follows:'
+    ).replace("{dataStore}", dsName);
+
+    var rows = ['<div style="font-weight:600;margin-bottom:5px">' + this._esc(hdr) + "</div>"];
+
+    // Row 2: distinct values for every mapped column (MIS first, then the rest)
+    var ordered = map
+      .filter(function (m) {
+        return m.role === "mis";
+      })
+      .concat(
+        map.filter(function (m) {
+          return m.role !== "mis";
+        }),
+      );
     var parts = [];
-
-    // Aggregation + MIS first.
-    var aggLabel = this._aggLabel(aggregation);
-    var misCol = map.filter(function (m) {
-      return m.role === "mis";
-    })[0];
-    var misVals = this._distinct(misCol.columnName)
-      .map(Number)
-      .sort(function (a, b) {
-        return a - b;
-      });
-    parts.push("<strong>Aggregation:</strong> " + this._esc(aggLabel));
-    parts.push("<strong>MIS:</strong> " + this._esc(misVals.join(", ")));
-
-    // Filters (skip the column acting as the aggregation row dimension).
-    map.forEach(function (m) {
-      if (m.role === "mis") return;
-      if (m.apiParam === aggregation) return;
+    ordered.forEach(function (m) {
       var vals = self._distinct(m.columnName);
       if (!vals.length) return;
+      if (m.role === "mis")
+        vals = vals.map(Number).sort(function (a, b) {
+          return a - b;
+        });
       parts.push(
         "<strong>" + self._esc(self._lbl(m.labels) || m.apiParam) + ":</strong> " + self._esc(vals.join(", ")),
       );
     });
+    rows.push("<div>" + parts.join(" &nbsp;|&nbsp; ") + "</div>");
 
-    return '<div class="fk-banner">' + parts.join(" &nbsp;|&nbsp; ") + "</div>";
+    // Row 3: aggregation actually requested — only shown after Load
+    if (aggregation) {
+      rows.push(
+        '<div style="margin-top:6px;padding-top:6px;border-top:1px solid #b8d4f0"><strong>Aggregation (requested):</strong> ' +
+          this._esc(this._aggLabel(aggregation)) +
+          "</div>",
+      );
+    }
+
+    return '<div class="fk-banner">' + rows.join("") + "</div>";
+  };
+
+  // Show the distinct-values preview immediately (before any API call).
+  ApiKpiFetcher.prototype._showScope = function () {
+    if (!this.kpiStore) return;
+    var banner = this.domNode.querySelector("#fk-banner");
+    if (!banner) return;
+    banner.innerHTML = this._buildBanner(null);
+    banner.classList.remove("fk-hidden");
   };
 
   // Yellow warning when a non-aggregation filter has >1 distinct value:
