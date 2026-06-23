@@ -640,16 +640,32 @@ define([], function () {
         return y(self._metric(p));
       });
 
-    this.series.forEach(function (s) {
+    this.series.forEach(function (s, si) {
       var col = self.colorOf[s.mis];
-      g.append("path")
+      var path = g
+        .append("path")
         .datum(s.points)
         .attr("fill", "none")
         .attr("stroke", col)
         .attr("stroke-width", 2)
         .attr("stroke-linejoin", "round")
         .attr("d", line);
-      g.selectAll(".dot-" + s.mis)
+      var tot = path.node().getTotalLength();
+      if (tot && isFinite(tot)) {
+        path
+          .attr("stroke-dasharray", tot + " " + tot)
+          .attr("stroke-dashoffset", tot)
+          .transition()
+          .duration(800)
+          .delay(si * 80)
+          .ease(d3.easeCubicInOut)
+          .attr("stroke-dashoffset", 0)
+          .on("end", function () {
+            d3.select(this).attr("stroke-dasharray", null);
+          });
+      }
+      var dots = g
+        .selectAll(".dot-" + s.mis)
         .data(s.points)
         .enter()
         .append("circle")
@@ -659,7 +675,7 @@ define([], function () {
         .attr("cy", function (p) {
           return y(self._metric(p));
         })
-        .attr("r", 3)
+        .attr("r", 0)
         .attr("fill", col)
         .attr("stroke", C.bg)
         .attr("stroke-width", 1)
@@ -679,6 +695,13 @@ define([], function () {
         .on("mouseout", function () {
           self._hideTip();
         });
+      dots
+        .transition()
+        .delay(function (d, i) {
+          return 500 + si * 80 + i * 15;
+        })
+        .duration(250)
+        .attr("r", 3);
     });
   };
 
@@ -746,7 +769,7 @@ define([], function () {
       })
       .attr("stroke", C.grid);
 
-    // delta bars (right axis)
+    // delta bars (right axis) — visual only; hover handled by overlay bands below
     var bw = Math.max(4, (iw / Math.max(1, months.length)) * 0.45);
     g.selectAll(".bar")
       .data(s.points)
@@ -755,22 +778,118 @@ define([], function () {
       .attr("x", function (p) {
         return x(p.month) - bw / 2;
       })
-      .attr("y", function (p) {
-        return ry(Math.abs(p.delta));
-      })
       .attr("width", bw)
-      .attr("height", function (p) {
-        return ih - ry(Math.abs(p.delta));
-      })
       .attr("rx", 2)
       .attr("fill", function (p) {
         return self._deltaColor(p.delta);
       })
       .attr("opacity", 0.85)
+      .style("pointer-events", "none")
+      .attr("y", ih)
+      .attr("height", 0)
+      .transition()
+      .duration(650)
+      .delay(function (d, i) {
+        return i * 25;
+      })
+      .ease(d3.easeCubicOut)
+      .attr("y", function (p) {
+        return ry(Math.abs(p.delta));
+      })
+      .attr("height", function (p) {
+        return ih - ry(Math.abs(p.delta));
+      });
+
+    // cumulative area + line (left axis) — visual only
+    var area = g
+      .append("path")
+      .datum(s.points)
+      .attr("fill", col)
+      .style("pointer-events", "none")
+      .attr(
+        "d",
+        d3
+          .area()
+          .x(function (p) {
+            return x(p.month);
+          })
+          .y0(ih)
+          .y1(function (p) {
+            return ly(p.value);
+          }),
+      );
+    area.attr("opacity", 0).transition().duration(800).attr("opacity", 0.12);
+
+    var lpath = g
+      .append("path")
+      .datum(s.points)
+      .attr("fill", "none")
+      .attr("stroke", col)
+      .attr("stroke-width", 2.2)
+      .style("pointer-events", "none")
+      .attr(
+        "d",
+        d3
+          .line()
+          .x(function (p) {
+            return x(p.month);
+          })
+          .y(function (p) {
+            return ly(p.value);
+          }),
+      );
+    var ltot = lpath.node().getTotalLength();
+    if (ltot && isFinite(ltot)) {
+      lpath
+        .attr("stroke-dasharray", ltot + " " + ltot)
+        .attr("stroke-dashoffset", ltot)
+        .transition()
+        .duration(800)
+        .ease(d3.easeCubicInOut)
+        .attr("stroke-dashoffset", 0)
+        .on("end", function () {
+          d3.select(this).attr("stroke-dasharray", null);
+        });
+    }
+    g.selectAll(".cdot")
+      .data(s.points)
+      .enter()
+      .append("circle")
+      .attr("cx", function (p) {
+        return x(p.month);
+      })
+      .attr("cy", function (p) {
+        return ly(p.value);
+      })
+      .attr("fill", col)
+      .attr("stroke", C.bg)
+      .attr("stroke-width", 1)
+      .style("pointer-events", "none")
+      .attr("r", 0)
+      .transition()
+      .delay(function (d, i) {
+        return 500 + i * 20;
+      })
+      .duration(250)
+      .attr("r", 3);
+
+    // transparent full-height hover bands — combined cumulative + delta tooltip
+    var step = months.length > 1 ? x(months[1]) - x(months[0]) : iw;
+    g.selectAll(".hb")
+      .data(s.points)
+      .enter()
+      .append("rect")
+      .attr("x", function (p) {
+        return x(p.month) - step / 2;
+      })
+      .attr("y", 0)
+      .attr("width", step)
+      .attr("height", ih)
+      .attr("fill", "transparent")
       .style("cursor", "pointer")
       .on("mouseover", function (ev, p) {
         self._showTip(
-          self._tipHead(self._deltaColor(p.delta), "MIS " + s.mis + " \u00B7 " + self.fmtFull(p.date)) +
+          self._tipHead(col, "MIS " + s.mis + " \u00B7 " + self.fmtFull(p.date)) +
             self._tipRow(self.kpiLabel + " (cum.)", self.f2(p.value), col) +
             self._tipRow("\u0394 New cases", self.f2(p.delta), self._deltaColor(p.delta)) +
             (p.vin != null ? self._tipRow("Affected VIN", self.f0(p.vin)) : ""),
@@ -784,54 +903,6 @@ define([], function () {
         self._hideTip();
       });
 
-    // cumulative area + line (left axis)
-    g.append("path")
-      .datum(s.points)
-      .attr("fill", col)
-      .attr("opacity", 0.12)
-      .attr(
-        "d",
-        d3
-          .area()
-          .x(function (p) {
-            return x(p.month);
-          })
-          .y0(ih)
-          .y1(function (p) {
-            return ly(p.value);
-          }),
-      );
-    g.append("path")
-      .datum(s.points)
-      .attr("fill", "none")
-      .attr("stroke", col)
-      .attr("stroke-width", 2.2)
-      .attr(
-        "d",
-        d3
-          .line()
-          .x(function (p) {
-            return x(p.month);
-          })
-          .y(function (p) {
-            return ly(p.value);
-          }),
-      );
-    g.selectAll(".cdot")
-      .data(s.points)
-      .enter()
-      .append("circle")
-      .attr("cx", function (p) {
-        return x(p.month);
-      })
-      .attr("cy", function (p) {
-        return ly(p.value);
-      })
-      .attr("r", 3)
-      .attr("fill", col)
-      .attr("stroke", C.bg)
-      .attr("stroke-width", 1);
-
     // alert line
     if (this.alert <= ly.domain()[1]) {
       g.append("line")
@@ -842,7 +913,8 @@ define([], function () {
         .attr("stroke", C.red)
         .attr("stroke-width", 1.5)
         .attr("stroke-dasharray", "5,4")
-        .attr("opacity", 0.8);
+        .attr("opacity", 0.8)
+        .style("pointer-events", "none");
     }
 
     var every = this._tickEvery(months.length);
@@ -909,7 +981,9 @@ define([], function () {
     var svg = this._svg(dm.el, dm.w, dm.h),
       g = svg.append("g").attr("transform", "translate(" + m.l + "," + m.t + ")");
 
-    this.series.forEach(function (s) {
+    var showText = x.bandwidth() >= 26 && y.bandwidth() >= 13;
+    var fs = Math.min(11, Math.floor(y.bandwidth() * 0.5));
+    this.series.forEach(function (s, si) {
       g.selectAll(".c-" + s.mis)
         .data(s.points)
         .enter()
@@ -936,7 +1010,43 @@ define([], function () {
         })
         .on("mouseout", function () {
           self._hideTip();
-        });
+        })
+        .attr("opacity", 0)
+        .transition()
+        .duration(400)
+        .delay(function (d, i) {
+          return si * 40 + i * 8;
+        })
+        .attr("opacity", 1);
+
+      if (showText) {
+        g.selectAll(".tx-" + s.mis)
+          .data(s.points)
+          .enter()
+          .append("text")
+          .attr("x", function (p) {
+            return x(p.month) + x.bandwidth() / 2;
+          })
+          .attr("y", y(String(s.mis)) + y.bandwidth() / 2)
+          .attr("text-anchor", "middle")
+          .attr("dominant-baseline", "central")
+          .attr("font-size", fs + "px")
+          .attr("font-family", "'IBM Plex Mono',monospace")
+          .attr("fill", function (p) {
+            return self._textColor(fill(p));
+          })
+          .style("pointer-events", "none")
+          .text(function (p) {
+            return self.metric === "absolute" ? self.f0(p.value) : (p.delta >= 0 ? "+" : "") + self.f0(p.delta);
+          })
+          .attr("opacity", 0)
+          .transition()
+          .delay(function (d, i) {
+            return 200 + si * 40 + i * 8;
+          })
+          .duration(300)
+          .attr("opacity", 1);
+      }
     });
 
     var every = this._tickEvery(this.allMonths.length);
@@ -1008,6 +1118,7 @@ define([], function () {
 
   // ─────────────────────────── axis styling ───────────────────────────
   ChartRenderer.prototype._styleAxis = function (sel) {
+    sel.style("pointer-events", "none");
     sel
       .selectAll("text")
       .attr("fill", C.muted2)
@@ -1018,6 +1129,13 @@ define([], function () {
   };
 
   // ─────────────────────────── misc ───────────────────────────
+  ChartRenderer.prototype._textColor = function (bg) {
+    var c = this.d3.color(bg);
+    if (!c) return "#1a1a1a";
+    c = c.rgb();
+    var lum = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
+    return lum > 0.62 ? "#1a1a1a" : "#ffffff";
+  };
   ChartRenderer.prototype._esc = function (s) {
     var d = document.createElement("div");
     d.textContent = s == null ? "" : String(s);
