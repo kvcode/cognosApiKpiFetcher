@@ -22,34 +22,37 @@ define([], function () {
 
   var DEFAULT_D3 = "https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js";
 
-  // Dark theme tokens (from the mockup)
+  // VW Group design system — Deep Space Blue "Inform" theme
   var C = {
-    bg: "#0f1117",
-    panel: "#161922",
-    panel2: "#11141c",
-    border: "#242838",
-    border2: "#2a2d3e",
-    text: "#e6e8ef",
-    muted: "#7e859c",
-    muted2: "#8a90a6",
-    head: "#cfd3e0",
-    accent: "#f5a623",
-    green: "#2ec27e",
-    red: "#d0021b",
-    grid: "#202433",
+    bg: "#002733",
+    panel: "#1b3e4a",
+    panel2: "#00141f",
+    border: "#33525c",
+    border2: "#4d6870",
+    text: "#ffffff",
+    muted: "#b2bec2",
+    muted2: "#99a9ad",
+    head: "#ffffff",
+    accent: "#c2fe06", // Electric Neon — highlight only (Max KPI)
+    vivid: "#008075", // Vivid Green — main interaction colour
+    green: "#55c2b6", // bright vivid green — for on-dark text (Min KPI)
+    red: "#f2595a", // system red — alert line
+    grid: "#33525c",
   };
-  // MIS line palette (cycles if more buckets than colours)
+  // Semantic feedback colours (delta bands, heatmap)
+  var SEM = { good: "#42b85a", warn: "#ff9a24", crit: "#f2595a" };
+  // MIS line palette — VW secondary data-visualisation accents (cycles)
   var PALETTE = [
-    "#5b9bd5",
-    "#19b6a6",
-    "#f5a623",
-    "#ef5b52",
-    "#a06cd5",
-    "#56c2e6",
-    "#7ed957",
-    "#e6a456",
-    "#d05b8c",
-    "#9aa0b6",
+    "#8cbee6",
+    "#55c2b6",
+    "#faaa3c",
+    "#e67364",
+    "#c882be",
+    "#c2fe06",
+    "#dccdf0",
+    "#fad2aa",
+    "#a5d7fe",
+    "#68b3e8",
   ];
 
   function ChartRenderer() {
@@ -230,7 +233,7 @@ define([], function () {
     return this.metric === "absolute" ? this.kpiLabel : "\u0394 " + this.kpiLabel;
   };
   ChartRenderer.prototype._deltaColor = function (v) {
-    return v < this.bands.good ? C.green : v <= this.bands.warn ? C.accent : C.red;
+    return v < this.bands.good ? SEM.good : v <= this.bands.warn ? SEM.warn : SEM.crit;
   };
 
   // ─────────────────────────── shell DOM ───────────────────────────
@@ -305,7 +308,7 @@ define([], function () {
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">' +
       '<div style="display:flex;align-items:center;gap:12px">' +
       '<div style="width:38px;height:38px;border-radius:10px;background:' +
-      C.accent +
+      C.vivid +
       ';display:flex;align-items:center;justify-content:center;flex:0 0 auto">' +
       '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="' +
       C.bg +
@@ -362,7 +365,7 @@ define([], function () {
       }) +
       "</div>" +
       "</div>" +
-      '<div id="fk-tip" style="position:fixed;left:0;top:0;pointer-events:none;opacity:0;z-index:99999;background:#0b0d13;border:1px solid #343a54;border-radius:8px;padding:9px 11px;font-size:11.5px;line-height:1.55;box-shadow:0 10px 30px rgba(0,0,0,.55);transition:opacity .1s;max-width:260px"></div>' +
+      '<div id="fk-tip" style="position:fixed;left:0;top:0;pointer-events:none;opacity:0;z-index:99999;background:#00141f;border:1px solid #4d6870;border-radius:8px;padding:9px 11px;font-size:11.5px;line-height:1.55;box-shadow:0 10px 30px rgba(0,0,0,.55);transition:opacity .1s;max-width:260px"></div>' +
       "</div>";
 
     this.root = container.querySelector("#fk-dash");
@@ -454,7 +457,7 @@ define([], function () {
     this._drawDrill();
   };
   ChartRenderer.prototype._styleToggle = function () {
-    var on = { background: "#1f2a44", color: "#cfe0ff", borderColor: "#2f6fd6" };
+    var on = { background: C.vivid, color: "#ffffff", borderColor: C.vivid };
     var off = { background: C.panel2, color: C.muted2, borderColor: C.border2 };
     var a = this.root.querySelector("#fk-mAbs"),
       b = this.root.querySelector("#fk-mDelta");
@@ -499,7 +502,7 @@ define([], function () {
   };
   ChartRenderer.prototype._tipHead = function (color, title) {
     return (
-      '<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #262b40"><span style="width:9px;height:9px;border-radius:50%;background:' +
+      '<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #33525c"><span style="width:9px;height:9px;border-radius:50%;background:' +
       color +
       '"></span><span style="font-weight:700;color:#fff">' +
       title +
@@ -973,7 +976,7 @@ define([], function () {
     var y = d3.scaleBand().domain(this.misOrder.map(String)).range([0, ih]).padding(0.12);
 
     var seqMax = this.metric === "absolute" ? this.maxVal || 1 : 1;
-    var seq = d3.scaleSequential(d3.interpolateYlOrRd).domain([0, seqMax]);
+    var seq = d3.scaleSequential(d3.interpolateRgbBasis([SEM.good, SEM.warn, SEM.crit])).domain([0, seqMax]);
     var fill = function (p) {
       return self.metric === "absolute" ? seq(p.value) : self._deltaColor(p.delta);
     };
@@ -1077,9 +1080,9 @@ define([], function () {
     var leg = this.root.querySelector("#fk-heatLeg");
     if (this.metric === "delta") {
       leg.innerHTML =
-        this._legSwatch(C.green, "< " + this.bands.good) +
-        this._legSwatch(C.accent, this.bands.good + "\u2013" + this.bands.warn) +
-        this._legSwatch(C.red, "> " + this.bands.warn) +
+        this._legSwatch(SEM.good, "< " + this.bands.good) +
+        this._legSwatch(SEM.warn, this.bands.good + "\u2013" + this.bands.warn) +
+        this._legSwatch(SEM.crit, "> " + this.bands.warn) +
         '<span style="font-size:10.5px;color:' +
         C.muted +
         '">\u0394 new cases / 1000</span>';
@@ -1131,10 +1134,10 @@ define([], function () {
   // ─────────────────────────── misc ───────────────────────────
   ChartRenderer.prototype._textColor = function (bg) {
     var c = this.d3.color(bg);
-    if (!c) return "#1a1a1a";
+    if (!c) return "#00141f";
     c = c.rgb();
     var lum = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
-    return lum > 0.62 ? "#1a1a1a" : "#ffffff";
+    return lum > 0.62 ? "#00141f" : "#ffffff";
   };
   ChartRenderer.prototype._esc = function (s) {
     var d = document.createElement("div");
