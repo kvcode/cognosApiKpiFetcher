@@ -21,6 +21,40 @@
   gap: 12px;
 }
 
+/* ── View tabs (Table | Dashboard) ────────────────────────────────────── */
+.ffp-kpi-ctrl .fk-tabs {
+  display: flex;
+  gap: 2px;
+  align-self: flex-start;
+}
+.ffp-kpi-ctrl .fk-tab {
+  padding: 8px 20px;
+  border: 1px solid #dde1e8;
+  border-bottom: none;
+  background: #eef1f6;
+  color: #666;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+}
+.ffp-kpi-ctrl .fk-tab:first-child {
+  margin-left: 2px;
+}
+.ffp-kpi-ctrl .fk-tab:hover {
+  background: #e3e9f1;
+  color: #2d6a9f;
+}
+.ffp-kpi-ctrl .fk-tab-on {
+  background: #2d6a9f;
+  color: #fff;
+  border-color: #2d6a9f;
+}
+.ffp-kpi-ctrl .fk-tab-on:hover {
+  background: #2d6a9f;
+  color: #fff;
+}
+
 /* ── Panels ───────────────────────────────────────────────────────────── */
 .ffp-kpi-ctrl .fk-panel {
   border-radius: 6px;

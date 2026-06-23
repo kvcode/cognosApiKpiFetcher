@@ -40,10 +40,16 @@ define([], function () {
     this.ListRenderer = null;
     this.ChartRenderer = null;
     this.listRenderer = null;
+    this.chartRenderer = null;
 
     this.locale = "en";
     this.lastResponse = null;
     this.lastTableText = "";
+
+    // View state (Table | Dashboard tabs)
+    this.currentView = "table";
+    this.chartRendered = false;
+    this.chartParams = null;
 
     // OAuth state
     this.oauthToken = null;
@@ -80,20 +86,16 @@ define([], function () {
       return;
     }
 
-    require(
-      toLoad,
-      function () {
-        var a = arguments;
-        if (idx.list !== undefined) self.ListRenderer = a[idx.list];
-        if (idx.chart !== undefined) self.ChartRenderer = a[idx.chart];
-        console.log("[ApiKpiFetcher] Renderers loaded — list:", !!self.ListRenderer, "chart:", !!self.ChartRenderer);
-        fnDoneInitializing();
-      },
-      function (err) {
-        console.error("[ApiKpiFetcher] Failed to load renderers:", err);
-        fnDoneInitializing();
-      }
-    );
+    require(toLoad, function () {
+      var a = arguments;
+      if (idx.list !== undefined) self.ListRenderer = a[idx.list];
+      if (idx.chart !== undefined) self.ChartRenderer = a[idx.chart];
+      console.log("[ApiKpiFetcher] Renderers loaded — list:", !!self.ListRenderer, "chart:", !!self.ChartRenderer);
+      fnDoneInitializing();
+    }, function (err) {
+      console.error("[ApiKpiFetcher] Failed to load renderers:", err);
+      fnDoneInitializing();
+    });
   };
 
   ApiKpiFetcher.prototype.setData = function (oControlHost, oDataStore) {
@@ -136,7 +138,7 @@ define([], function () {
       msgs.push(
         'DataStore "<code>' +
           (this.config.kpiDataStore || "FFP_Dimensions") +
-          '</code>" was not received. Check the DataStore name on the data set feeding this control.'
+          '</code>" was not received. Check the DataStore name on the data set feeding this control.',
       );
       return msgs;
     }
@@ -154,7 +156,7 @@ define([], function () {
             this._esc(map[i].columnName) +
             '</code>" (apiParam <code>' +
             this._esc(map[i].apiParam) +
-            "</code>) is not present in the DataStore. Add it to the data set, or remove it from dataMap."
+            "</code>) is not present in the DataStore. Add it to the data set, or remove it from dataMap.",
         );
       }
     }
@@ -165,7 +167,7 @@ define([], function () {
     if (misEntries.length === 0) {
       msgs.push('No MIS column mapped. One dataMap entry must have <code>"role": "mis"</code>.');
     } else if (misEntries.length > 1) {
-      msgs.push("More than one MIS column mapped — only one <code>role: \"mis\"</code> is allowed.");
+      msgs.push('More than one MIS column mapped — only one <code>role: "mis"</code> is allowed.');
     }
     return msgs.length ? msgs : null;
   };
@@ -176,6 +178,11 @@ define([], function () {
     var loadLabel = this._lbl(btn.labels) || "Load KPI";
     return [
       '<div class="fk-wrapper">',
+
+      '<div class="fk-tabs">',
+      '  <button id="fk-tab-table" class="fk-tab fk-tab-on">Table</button>',
+      '  <button id="fk-tab-dash" class="fk-tab">Dashboard</button>',
+      "</div>",
 
       '<div class="fk-panel">',
       '<div class="fk-panel-header">',
@@ -205,6 +212,7 @@ define([], function () {
       '<div id="fk-banner" class="fk-hidden"></div>',
       '<div id="fk-warn" class="fk-hidden"></div>',
       '<div id="fk-table"></div>',
+      '<div id="fk-chart" class="fk-hidden"></div>',
 
       '<div id="fk-raw-section" class="fk-hidden">',
       '  <div class="fk-raw-hdr" id="fk-raw-toggle"><span id="fk-raw-arrow">\u25B6</span> Raw API response (JSON)</div>',
@@ -284,6 +292,13 @@ define([], function () {
         arr = R.querySelector("#fk-raw-arrow");
       var hidden = pre.classList.toggle("fk-hidden");
       arr.textContent = hidden ? "\u25B6" : "\u25BC";
+    });
+
+    R.querySelector("#fk-tab-table").addEventListener("click", function () {
+      self._switchView("table");
+    });
+    R.querySelector("#fk-tab-dash").addEventListener("click", function () {
+      self._switchView("dash");
     });
 
     this.messageHandler = function (ev) {
@@ -370,7 +385,9 @@ define([], function () {
       if (m.apiParam === aggregation) return;
       var vals = self._distinct(m.columnName);
       if (!vals.length) return;
-      parts.push("<strong>" + self._esc(self._lbl(m.labels) || m.apiParam) + ":</strong> " + self._esc(vals.join(", ")));
+      parts.push(
+        "<strong>" + self._esc(self._lbl(m.labels) || m.apiParam) + ":</strong> " + self._esc(vals.join(", ")),
+      );
     });
 
     return '<div class="fk-banner">' + parts.join(" &nbsp;|&nbsp; ") + "</div>";
@@ -452,8 +469,10 @@ define([], function () {
           self._status("Loaded \u2014 HTTP " + res.status + " \u2014 " + ms + "ms", "success");
         } else if (res.status === 401 || res.status === 403) {
           self._status(
-            "HTTP " + res.status + " \u2014 token rejected (missing KIRA roles / aud?). Re-authenticate or check CloudIDP mapper.",
-            "error"
+            "HTTP " +
+              res.status +
+              " \u2014 token rejected (missing KIRA roles / aud?). Re-authenticate or check CloudIDP mapper.",
+            "error",
           );
           self._showRaw(res.text);
         } else {
@@ -503,12 +522,65 @@ define([], function () {
     }
     this.lastTableText = out.tableText || "";
 
+    // Dashboard params (rendered lazily when the Dashboard tab is shown)
+    this.chartParams = {
+      response: json,
+      aggParam: aggregation,
+      aggArrayKey: arrayKey,
+      kpiLabel: this._lbl(btn.kpiColumnLabel) || "SF1000",
+      chartConfig: this.config.chart || {},
+    };
+    this.chartRendered = false;
+    if (this.currentView === "dash") this._renderChartIfNeeded();
+
     // Raw JSON
     this._showRaw(JSON.stringify(json, null, 2));
 
     // Enable copy buttons
     this.domNode.querySelector("#fk-btn-copy-json").disabled = false;
     this.domNode.querySelector("#fk-btn-copy-table").disabled = !this.lastTableText;
+  };
+
+  // ═══════════════════════ VIEW TABS (Table | Dashboard) ═══════════════════════
+  ApiKpiFetcher.prototype._switchView = function (view) {
+    if (this.currentView === view) return;
+    this.currentView = view;
+    var R = this.domNode;
+    var tableEl = R.querySelector("#fk-table");
+    var chartEl = R.querySelector("#fk-chart");
+    var tabT = R.querySelector("#fk-tab-table");
+    var tabD = R.querySelector("#fk-tab-dash");
+    if (view === "dash") {
+      tableEl.classList.add("fk-hidden");
+      chartEl.classList.remove("fk-hidden");
+      tabD.classList.add("fk-tab-on");
+      tabT.classList.remove("fk-tab-on");
+      this._renderChartIfNeeded(); // render AFTER it is visible (charts need real width)
+    } else {
+      chartEl.classList.add("fk-hidden");
+      tableEl.classList.remove("fk-hidden");
+      tabT.classList.add("fk-tab-on");
+      tabD.classList.remove("fk-tab-on");
+    }
+  };
+
+  ApiKpiFetcher.prototype._renderChartIfNeeded = function () {
+    var chartEl = this.domNode.querySelector("#fk-chart");
+    if (!this.chartParams) {
+      chartEl.innerHTML =
+        '<div class="fk-banner">Load data first (Authenticate, then ' +
+        this._esc(this._lbl(((this.config.buttons || [])[0] || {}).labels) || "Load KPI") +
+        ") — the dashboard renders here.</div>";
+      return;
+    }
+    if (this.chartRendered) return;
+    if (!this.ChartRenderer) {
+      chartEl.innerHTML = '<div class="fk-warn">Chart renderer not loaded (check BaseScriptPaths.ChartRenderer).</div>';
+      return;
+    }
+    if (!this.chartRenderer) this.chartRenderer = new this.ChartRenderer();
+    this.chartRenderer.render(chartEl, this.chartParams);
+    this.chartRendered = true;
   };
 
   ApiKpiFetcher.prototype._showRaw = function (text) {
@@ -664,8 +736,9 @@ define([], function () {
           self._storeToken();
           self._markAuthed();
           self._status(
-            "\u2705 Authenticated" + (self.oauthTokenExpiry ? " (expires " + new Date(self.oauthTokenExpiry).toLocaleTimeString() + ")" : ""),
-            "success"
+            "\u2705 Authenticated" +
+              (self.oauthTokenExpiry ? " (expires " + new Date(self.oauthTokenExpiry).toLocaleTimeString() + ")" : ""),
+            "success",
           );
         } else if (j && j.error) {
           self._status(j.error + (j.error_description ? " - " + j.error_description : ""), "error");
@@ -706,7 +779,7 @@ define([], function () {
     try {
       sessionStorage.setItem(
         this._tokenKey(),
-        JSON.stringify({ token: this.oauthToken, expiry: this.oauthTokenExpiry })
+        JSON.stringify({ token: this.oauthToken, expiry: this.oauthTokenExpiry }),
       );
     } catch (e) {}
   };
@@ -790,6 +863,8 @@ define([], function () {
   };
   ApiKpiFetcher.prototype.destroy = function () {
     if (this.messageHandler) window.removeEventListener("message", this.messageHandler);
+    if (this.chartRenderer && typeof this.chartRenderer.destroy === "function") this.chartRenderer.destroy();
+    this.chartRenderer = null;
     this.dataStores = {};
     this.kpiStore = null;
     this.lastResponse = null;
